@@ -1,5 +1,7 @@
 # Gym Crowding Platform
 
+<img width="400" height="427" alt="booking-test" src="https://github.com/user-attachments/assets/233d49ec-63de-4b25-a9c7-09d146fa27e0" />
+
 This repository contains three main projects:
 
 - `api/` — Fastify backend API for gym capacity and booking
