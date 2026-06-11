@@ -1,0 +1,259 @@
+Resources:
+  GymApiLambdaServiceRole50BB6A8D:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiLambda/ServiceRole/Resource
+  GymApiLambda9A103B8C:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Fn::Sub: cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1
+        S3Key: 1ccc0d77843c1cce8b75dc95b11b7858bd1a68c9789775ac3a773f430bc10bac.zip
+      Environment:
+        Variables:
+          NODE_ENV: production
+      Handler: index.handler
+      MemorySize: 512
+      Role:
+        Fn::GetAtt:
+          - GymApiLambdaServiceRole50BB6A8D
+          - Arn
+      Runtime: nodejs20.x
+      Timeout: 10
+    DependsOn:
+      - GymApiLambdaServiceRole50BB6A8D
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiLambda/Resource
+      aws:asset:path: asset.1ccc0d77843c1cce8b75dc95b11b7858bd1a68c9789775ac3a773f430bc10bac
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  GymApiLambdaLogGroupEAD4A2B8:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Join:
+          - ""
+          - - /aws/lambda/
+            - Ref: GymApiLambda9A103B8C
+      RetentionInDays: 731
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiLambda/LogGroup/Resource
+  GymApiGateway1824EFDA:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: Gym Capacity API
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiGateway/Resource
+  GymApiGatewayDeployment91B9A66E9717a5283af0bd450fc07e9c607640a1:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      Description: Automatically created by the RestApi construct
+      RestApiId:
+        Ref: GymApiGateway1824EFDA
+    DependsOn:
+      - GymApiGatewayproxyANY9364CE0E
+      - GymApiGatewayproxyACE1B389
+      - GymApiGatewayANY6F280D6B
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiGateway/Deployment/Resource
+      aws:cdk:do-not-refactor: true
+  GymApiGatewayDeploymentStageprod2CCA904F:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId:
+        Ref: GymApiGatewayDeployment91B9A66E9717a5283af0bd450fc07e9c607640a1
+      RestApiId:
+        Ref: GymApiGateway1824EFDA
+      StageName: prod
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiGateway/DeploymentStage.prod/Resource
+  GymApiGatewayproxyACE1B389:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - GymApiGateway1824EFDA
+          - RootResourceId
+      PathPart: "{proxy+}"
+      RestApiId:
+        Ref: GymApiGateway1824EFDA
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiGateway/Default/{proxy+}/Resource
+  GymApiGatewayproxyANYApiPermissionGymApiStackGymApiGateway694C7263ANYproxy34EDD936:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - GymApiLambda9A103B8C
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:aws:execute-api:us-east-1:"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: GymApiGateway1824EFDA
+            - /
+            - Ref: GymApiGatewayDeploymentStageprod2CCA904F
+            - /*/*
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiGateway/Default/{proxy+}/ANY/ApiPermission.GymApiStackGymApiGateway694C7263.ANY..{proxy+}
+  GymApiGatewayproxyANYApiPermissionTestGymApiStackGymApiGateway694C7263ANYproxy2A62376E:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - GymApiLambda9A103B8C
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:aws:execute-api:us-east-1:"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: GymApiGateway1824EFDA
+            - /test-invoke-stage/*/*
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiGateway/Default/{proxy+}/ANY/ApiPermission.Test.GymApiStackGymApiGateway694C7263.ANY..{proxy+}
+  GymApiGatewayproxyANY9364CE0E:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - GymApiLambda9A103B8C
+                  - Arn
+              - /invocations
+      ResourceId:
+        Ref: GymApiGatewayproxyACE1B389
+      RestApiId:
+        Ref: GymApiGateway1824EFDA
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiGateway/Default/{proxy+}/ANY/Resource
+  GymApiGatewayANYApiPermissionGymApiStackGymApiGateway694C7263ANY7DDFDB2E:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - GymApiLambda9A103B8C
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:aws:execute-api:us-east-1:"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: GymApiGateway1824EFDA
+            - /
+            - Ref: GymApiGatewayDeploymentStageprod2CCA904F
+            - /*/
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiGateway/Default/ANY/ApiPermission.GymApiStackGymApiGateway694C7263.ANY..
+  GymApiGatewayANYApiPermissionTestGymApiStackGymApiGateway694C7263ANY804713F4:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - GymApiLambda9A103B8C
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ""
+          - - "arn:aws:execute-api:us-east-1:"
+            - Ref: AWS::AccountId
+            - ":"
+            - Ref: GymApiGateway1824EFDA
+            - /test-invoke-stage/*/
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiGateway/Default/ANY/ApiPermission.Test.GymApiStackGymApiGateway694C7263.ANY..
+  GymApiGatewayANY6F280D6B:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+            - ""
+            - - arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/
+              - Fn::GetAtt:
+                  - GymApiLambda9A103B8C
+                  - Arn
+              - /invocations
+      ResourceId:
+        Fn::GetAtt:
+          - GymApiGateway1824EFDA
+          - RootResourceId
+      RestApiId:
+        Ref: GymApiGateway1824EFDA
+    Metadata:
+      aws:cdk:path: GymApiStack/GymApiGateway/Default/ANY/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/61UTW8bIRD9LeEYYdo6rRT5ZqcfiuQ2lt3byoomMNkQ7wLiI+4W7X+vYFnbddVDlZ5gH2/evJmBnbLph2v27gL2bsLFbtLIBxY3HviOwt7dxwbaBwEsfg6Ke6lVFYkNyssWyYxcEkqeQIkGbfniWowHLbbadhv5cwRSkA6+fKF6kVarFtWA9DQSEOLTKVxl5iXZ9lt686hGD2m/QttK56RWPZXQsrjWDVaRgHOhRbHoyCwSY6Xi0kAz51wHNaYeOClgnvVKftKCghrFSjeSS3RkVsXfsG5uC7cYShI9dVf34Bx6x+Zpoe6KLQLfoV+Aw1TClja6diwudf3F6mCqSJqy/QalkYPgyOgpGFmDxz10LC7zDNbo/NzIKhKBjxAaf6s81hYOFZzPwlj9oyMzbwNSYofoQz5KBJpGd3cmxbvULeehxqOhNJD/Kzj0bIijHzM7zTlX5LiV5qQUMLLsLHqQ6kh3p9flu17qWnJobkUaV7/9ZzybOqrTTTKdLY1Q8XFWTY7LZLpGp4PleJz3KnVqhKtIDNij0F/HVw6+on/S4tDHUuyJRKll4A2vZHtobk5Jh7P0WAsy3hDvzRiXAfmHC32W+JUK2dcQ0Pc0v5DUNanqdHAXvAm+p0oLZM/uzcv0Pbtmby+enZST8qNh62H9BSvUComrBAAA
+    Metadata:
+      aws:cdk:path: GymApiStack/CDKMetadata/Default
+Outputs:
+  GymApiGatewayEndpointDD8E7452:
+    Value:
+      Fn::Join:
+        - ""
+        - - https://
+          - Ref: GymApiGateway1824EFDA
+          - .execute-api.us-east-1.
+          - Ref: AWS::URLSuffix
+          - /
+          - Ref: GymApiGatewayDeploymentStageprod2CCA904F
+          - /
+  ApiUrl:
+    Value:
+      Fn::Join:
+        - ""
+        - - https://
+          - Ref: GymApiGateway1824EFDA
+          - .execute-api.us-east-1.
+          - Ref: AWS::URLSuffix
+          - /
+          - Ref: GymApiGatewayDeploymentStageprod2CCA904F
+          - /
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+
